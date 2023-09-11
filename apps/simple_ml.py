@@ -1,14 +1,20 @@
+"""hw1/apps/simple_ml.py"""
+
 import struct
 import gzip
 import numpy as np
 
 import sys
-sys.path.append('python/')
+
+
+import python.needle as ndl
+sys.path.append("../python/")
 import needle as ndl
+import numpy as array_api
 
 
-def parse_mnist(image_filesname, label_filename):
-    """ Read an images and labels file in MNIST format.  See this page:
+def parse_mnist(image_filename, label_filename):
+    """Read an images and labels file in MNIST format.  See this page:
     http://yann.lecun.com/exdb/mnist/ for a description of the file format.
 
     Args:
@@ -30,12 +36,18 @@ def parse_mnist(image_filesname, label_filename):
                 for MNIST will contain the values 0-9.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    with gzip.open(image_filename, 'rb') as f:
+        _, num_img, row, col = struct.unpack('>IIII', f.read(16))
+        X = np.frombuffer(f.read(), np.uint8).byteswap().reshape(num_img, row * col).astype(np.float32) / 255
+    with gzip.open(label_filename, 'rb') as f:
+        _, _ = struct.unpack('>II', f.read(8))
+        y = np.frombuffer(f.read(), np.uint8).byteswap()
+    return X, y
     ### END YOUR SOLUTION
 
 
 def softmax_loss(Z, y_one_hot):
-    """ Return softmax loss.  Note that for the purposes of this assignment,
+    """Return softmax loss.  Note that for the purposes of this assignment,
     you don't need to worry about "nicely" scaling the numerical properties
     of the log-sum-exp computation, but can just compute this directly.
 
@@ -51,12 +63,15 @@ def softmax_loss(Z, y_one_hot):
         Average softmax loss over the sample. (ndl.Tensor[np.float32])
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    def softmax(X):
+        X_sum = ndl.ops.summation(ndl.ops.exp(X), axes=(1, ))
+        return ndl.ops.exp(X) / X_sum.reshape(X_sum.shape + (1, )).broadcast_to(X.shape)
+    return ndl.ops.summation(-ndl.ops.log(ndl.ops.summation(softmax(Z) * y_one_hot, axes=(1, )))) / Z.shape[0]
     ### END YOUR SOLUTION
 
 
-def nn_epoch(X, y, W1, W2, lr = 0.1, batch=100):
-    """ Run a single epoch of SGD for a two-layer neural network defined by the
+def nn_epoch(X, y, W1, W2, lr=0.1, batch=100):
+    """Run a single epoch of SGD for a two-layer neural network defined by the
     weights W1 and W2 (with no bias terms):
         logits = ReLU(X * W1) * W1
     The function should use the step size lr, and the specified batch size (and
@@ -80,15 +95,25 @@ def nn_epoch(X, y, W1, W2, lr = 0.1, batch=100):
     """
 
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    for i in range(0, y.shape[0], batch):
+        X_batch = X[i:i + batch]
+        y_batch = y[i:i + batch]
+        X_batch = ndl.Tensor(X_batch, dtype=X_batch.dtype, requires_grad=False)
+        y_batch = ndl.Tensor(array_api.eye(W2.shape[1])[y_batch], dtype=y_batch.dtype, requires_grad=False)
+        loss: ndl.Tensor = softmax_loss(ndl.ops.relu(X_batch @ W1) @ W2, y_batch)
+        loss.backward()
+        W1 -= lr * W1.grad
+        W2 -= lr * W2.grad
+    return W1, W2
     ### END YOUR SOLUTION
 
 
 ### CODE BELOW IS FOR ILLUSTRATION, YOU DO NOT NEED TO EDIT
 
-def loss_err(h,y):
-    """ Helper function to compute both loss and error"""
+
+def loss_err(h, y):
+    """Helper function to compute both loss and error"""
     y_one_hot = np.zeros((y.shape[0], h.shape[-1]))
     y_one_hot[np.arange(y.size), y] = 1
     y_ = ndl.Tensor(y_one_hot)
-    return softmax_loss(h,y_).numpy(), np.mean(h.numpy().argmax(axis=1) != y)
+    return softmax_loss(h, y_).numpy(), np.mean(h.numpy().argmax(axis=1) != y)
