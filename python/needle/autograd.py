@@ -404,37 +404,6 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     for node in node_list:
         topo_sort_dfs(node, dfs_visited, dfs_topo_order)
     return dfs_topo_order
-    # # Non-recursive version: Avoid stack overflowing
-    # # get all node
-    # visited = set()
-    # q = Queue()
-    # for node in node_list:
-    #     q.put(node)
-    #     visited.add(node)
-    # while not q.empty():
-    #     node = q.get()
-    #     for in_node in node.inputs:
-    #         if in_node not in visited:
-    #             visited.add(in_node)
-    #             q.put(in_node)
-    # # topo sort
-    # to = {node: [] for node in visited}
-    # ind = {node: len(node.inputs) for node in visited}
-    # for node in visited:
-    #     for in_node in node.inputs:
-    #         to[in_node].append(node)
-    # topo_order = []
-    # for node in visited:
-    #     if ind[node] == 0:
-    #         q.put(node)
-    # while not q.empty():
-    #     node = q.get()
-    #     topo_order.append(node)
-    #     for out_node in to[node]:
-    #         ind[out_node] -= 1
-    #         if ind[out_node] == 0:
-    #             q.put(out_node)
-    # return topo_order
     ### END YOUR SOLUTION
 
 

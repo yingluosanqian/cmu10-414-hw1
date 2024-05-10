@@ -98,12 +98,14 @@ def nn_epoch(X, y, W1, W2, lr=0.1, batch=100):
     for i in range(0, y.shape[0], batch):
         X_batch = X[i:i + batch]
         y_batch = y[i:i + batch]
-        X_batch = ndl.Tensor(X_batch, dtype=X_batch.dtype, requires_grad=False)
-        y_batch = ndl.Tensor(array_api.eye(W2.shape[1])[y_batch], dtype=y_batch.dtype, requires_grad=False)
+        X_batch = ndl.Tensor(X_batch)
+        y_batch = ndl.Tensor(array_api.eye(W2.shape[1])[y_batch])
         loss: ndl.Tensor = softmax_loss(ndl.ops.relu(X_batch @ W1) @ W2, y_batch)
         loss.backward()
-        W1 -= lr * W1.grad
-        W2 -= lr * W2.grad
+        W1 = W1.data - lr * W1.grad.data
+        W2 = W2.data - lr * W2.grad.data
+        # This is not correct: `W1 = W1 - lr * W1.grad` because the tensor nodes from previous iteration have connected
+        # with the tensor nodes from this round, affect the computational efficiency.
     return W1, W2
     ### END YOUR SOLUTION
 
