@@ -1,4 +1,6 @@
 """Core data structures."""
+from queue import Queue
+
 import needle
 from .backend_numpy import Device, cpu, all_devices
 from typing import List, Optional, NamedTuple, Tuple, Union, Dict
@@ -126,7 +128,6 @@ class Value:
     ):
         global TENSOR_COUNTER
         TENSOR_COUNTER += 1
-        print(TENSOR_COUNTER)
         if requires_grad is None:
             requires_grad = any(x.requires_grad for x in inputs)
         self.op = op
@@ -379,7 +380,6 @@ def compute_gradient_of_variables(output_tensor, out_grad):
     # We are really taking a derivative of the scalar reduce_sum(output_node)
     # instead of the vector output_node. But this is the common case for loss function.
     node_to_output_grads_list[output_tensor].append(out_grad)
-
     ### BEGIN YOUR SOLUTION
     for node in reverse_topo_order:
         node.grad = sum_node_list(node_to_output_grads_list[node])
@@ -398,11 +398,43 @@ def find_topo_sort(node_list: List[Value]) -> List[Value]:
     sort.
     """
     ### BEGIN YOUR SOLUTION
-    visited = set()
-    topo_order = []
+    # Recursive version
+    dfs_visited = set()
+    dfs_topo_order = []
     for node in node_list:
-        topo_sort_dfs(node, visited, topo_order)
-    return topo_order
+        topo_sort_dfs(node, dfs_visited, dfs_topo_order)
+    return dfs_topo_order
+    # # Non-recursive version: Avoid stack overflowing
+    # # get all node
+    # visited = set()
+    # q = Queue()
+    # for node in node_list:
+    #     q.put(node)
+    #     visited.add(node)
+    # while not q.empty():
+    #     node = q.get()
+    #     for in_node in node.inputs:
+    #         if in_node not in visited:
+    #             visited.add(in_node)
+    #             q.put(in_node)
+    # # topo sort
+    # to = {node: [] for node in visited}
+    # ind = {node: len(node.inputs) for node in visited}
+    # for node in visited:
+    #     for in_node in node.inputs:
+    #         to[in_node].append(node)
+    # topo_order = []
+    # for node in visited:
+    #     if ind[node] == 0:
+    #         q.put(node)
+    # while not q.empty():
+    #     node = q.get()
+    #     topo_order.append(node)
+    #     for out_node in to[node]:
+    #         ind[out_node] -= 1
+    #         if ind[out_node] == 0:
+    #             q.put(out_node)
+    # return topo_order
     ### END YOUR SOLUTION
 
 
